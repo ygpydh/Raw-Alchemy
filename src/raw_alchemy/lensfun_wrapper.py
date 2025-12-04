@@ -26,29 +26,31 @@ def _get_base_path():
 def _load_lensfun_library():
     """加载lensfun动态库"""
     system = platform.system()
+    base_path = _get_base_path()
     
     try:
         if system == "Windows":
-            base_path = _get_base_path()
-            vendor_dir = os.path.join(base_path, "vendor", "lensfun", "bin")
+            vendor_dir = os.path.join(base_path, "vendor", "lensfun", "win-x86_64")
             vendor_dll = os.path.join(vendor_dir, "lensfun.dll")
 
             if os.path.exists(vendor_dll):
-                # For Python 3.8+ on Windows, add the DLL's directory to the search path
-                # to ensure its dependencies are found, especially in child processes.
                 if hasattr(os, 'add_dll_directory'):
                     with os.add_dll_directory(vendor_dir):
                         lib = ctypes.CDLL(vendor_dll)
                 else:
-                    # For older Python, this might fail if dependencies are not in PATH
                     lib = ctypes.CDLL(vendor_dll)
             else:
-                # Fallback to system path
                 lib = ctypes.CDLL("lensfun.dll")
         elif system == "Darwin":
             lib = ctypes.CDLL("liblensfun.dylib")
-        else:
-            lib = ctypes.CDLL("liblensfun.so.1")
+        else:  # Linux and other Unix-like
+            vendor_dir = os.path.join(base_path, "vendor", "lensfun", "linux-x86_64")
+            vendor_so = os.path.join(vendor_dir, "liblensfun.so")
+            if os.path.exists(vendor_so):
+                lib = ctypes.CDLL(vendor_so)
+            else:
+                # Fallback to system path
+                lib = ctypes.CDLL("liblensfun.so")
         return lib
     except OSError:
         # Silently fail. The error will be reported by the calling function if _lensfun is None.
@@ -146,6 +148,9 @@ if _lensfun:
     
     _lensfun.lf_db_load_path.restype = ctypes.c_int
     _lensfun.lf_db_load_path.argtypes = [ctypes.POINTER(lfDatabase), ctypes.c_char_p]
+
+    _lensfun.lf_db_load_str.restype = ctypes.c_int
+    _lensfun.lf_db_load_str.argtypes = [ctypes.POINTER(lfDatabase), ctypes.c_char_p, ctypes.c_size_t]
     
     _lensfun.lf_db_find_cameras_ext.restype = ctypes.POINTER(ctypes.POINTER(lfCamera))
     _lensfun.lf_db_find_cameras_ext.argtypes = [
@@ -264,14 +269,26 @@ class LensfunDatabase:
                 error_msg += f"\n     - Check if the path is correct: {db_path if os.path.isdir(db_path) else 'System paths'}"
                 error_msg += "\n     - Ensure file permissions are correct."
             raise RuntimeError(error_msg)
-
+        
         # 加载用户自定义数据库
         if custom_db_path and os.path.exists(custom_db_path):
             logger(f"  ✨ [Lensfun] Loading custom database from: {custom_db_path}")
-            # lf_db_load_path可以被多次调用以加载更多数据
-            result = _lensfun.lf_db_load_path(self.db, custom_db_path.encode('utf-8'))
-            if result != 0:
-                logger(f"  ⚠️ [Lensfun] Failed to load custom database file: {custom_db_path}, error code: {result}")
+            try:
+                with open(custom_db_path, 'rb') as f:
+                    xml_data = f.read()
+                
+                if xml_data:
+                    # lf_db_load_str用于从字符串加载XML数据
+                    result = _lensfun.lf_db_load_str(self.db, xml_data, len(xml_data))
+                    if result != 0:
+                        error_msg = f"Failed to load custom lensfun database from file: {custom_db_path}, error code: {result}"
+                        if result == 1:  # LF_WRONG_FORMAT
+                            error_msg += "\n  💡 [Hint] The XML data has the wrong format. Please check if the file is a valid Lensfun database file."
+                        elif result == 2:  # LF_NO_DATABASE
+                            error_msg += "\n  💡 [Hint] No database could be loaded from the provided data. The file might be empty or corrupted."
+                        raise RuntimeError(error_msg)
+            except IOError as e:
+                raise RuntimeError(f"Could not read custom database file: {custom_db_path}. Error: {e}")
     
     def __del__(self):
         if hasattr(self, 'db') and self.db:
@@ -513,3 +530,4 @@ def apply_lens_correction(
         output = output.astype(original_dtype)
     
     return output
+

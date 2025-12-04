@@ -24,7 +24,7 @@ class GuiApplication(tk.Frame):
         super().__init__(master)
         self.master = master
         self.master.title("Raw Alchemy")
-        self.master.geometry("1000x750")
+        self.master.geometry("1000x900")
         
         # Set Icon
         try:
