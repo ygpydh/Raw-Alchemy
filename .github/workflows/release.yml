@@ -55,7 +55,12 @@ jobs:
           python-version: '3.12'
 
       - name: Install Linux system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libraw-dev upx-ucl
+        run: sudo apt-get update && sudo apt-get install -y libraw-dev
+
+      - name: Install UPX
+        uses: crazy-max/ghaction-upx@v3
+        with:
+          install-only: true
 
       - name: Install Python dependencies
         run: |
