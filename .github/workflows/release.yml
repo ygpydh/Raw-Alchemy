@@ -28,11 +28,6 @@ jobs:
         env:
           CMAKE_PREFIX_PATH: ''
 
-      - name: Install UPX
-        uses: crazy-max/ghaction-upx@v3
-        with:
-          install-only: true
-
       - name: Build executable with PyInstaller
         run: pyinstaller RawAlchemy.spec
 
@@ -56,11 +51,6 @@ jobs:
 
       - name: Install Linux system dependencies
         run: sudo apt-get update && sudo apt-get install -y libraw-dev
-
-      - name: Install UPX
-        uses: crazy-max/ghaction-upx@v3
-        with:
-          install-only: true
 
       - name: Install Python dependencies
         run: |
