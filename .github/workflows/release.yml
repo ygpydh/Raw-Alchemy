@@ -57,9 +57,6 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install Linux system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libraw-dev
-
       - name: Download and Extract Lensfun
         run: |
           mkdir -p src/raw_alchemy/vendor/lensfun
@@ -96,7 +93,6 @@ jobs:
 
       - name: Install macOS system dependencies
         run: |
-          brew install libraw
           brew install create-dmg python-tk@3.12
 
       - name: Convert PNG to ICNS for macOS icon
