@@ -146,16 +146,23 @@ def get_subsampled_view(img, target_size=1024):
 # 业务逻辑函数 (优化版)
 # =========================================================
 
-def apply_saturation_and_contrast(img_linear, saturation=1.25, contrast=1.10):
+def apply_saturation_and_contrast(img_linear, saturation=1.25, contrast=1.10, colourspace=None):
     """
     In-Place 应用饱和度和对比度。
-    注意：这里假设 img_linear 是 ProPhoto RGB，我们使用 ProPhoto 的亮度系数。
+    
+    Args:
+        img_linear: 线性图像数据
+        saturation: 饱和度系数
+        contrast: 对比度系数
+        colourspace: 色彩空间对象，如果为 None 则使用 ProPhoto RGB
     """
-    # ProPhoto RGB 的近似亮度系数 (R, G, B)
-    # 如果要非常严谨，应该从 colour.RGB_COLOURSPACES['ProPhoto RGB'] 获取
-    # 这里为了性能直接硬编码，或者你可以传参进来
-    # ProPhoto Luma Coeffs: [0.28804, 0.71187, 0.00009]
-    luma_coeffs = np.array([0.28804, 0.71187, 0.00009], dtype=np.float32)
+    import colour
+    
+    # 动态获取亮度系数
+    if colourspace is None:
+        colourspace = colour.RGB_COLOURSPACES['ProPhoto RGB']
+    
+    luma_coeffs = get_luminance_coeffs(colourspace).astype(np.float32)
     
     # 确保连续，防止 Numba 变慢
     if not img_linear.flags['C_CONTIGUOUS']:
