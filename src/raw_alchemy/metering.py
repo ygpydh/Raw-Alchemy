@@ -4,8 +4,13 @@
 """
 import numpy as np
 from typing import Protocol, Optional
-from .logger import Logger
 
+try:
+    from .logger import Logger
+    from . import utils
+except ImportError:
+    from logger import Logger
+    import utils
 
 class MeteringStrategy(Protocol):
     """测光策略接口"""
@@ -42,8 +47,7 @@ class AverageMeteringStrategy:
         target_gray: float = 0.18,
         logger: Optional[Logger] = None
     ) -> float:
-        from . import utils
-        
+
         sample = utils.get_subsampled_view(img_linear)
         coeffs = utils.get_luminance_coeffs(source_colorspace)
         luminance = np.dot(sample, coeffs)
@@ -74,8 +78,7 @@ class CenterWeightedMeteringStrategy:
         target_gray: float = 0.18,
         logger: Optional[Logger] = None
     ) -> float:
-        from . import utils
-        
+
         sample = utils.get_subsampled_view(img_linear)
         coeffs = utils.get_luminance_coeffs(source_colorspace)
         luminance = np.dot(sample, coeffs)
@@ -112,8 +115,7 @@ class HighlightSafeMeteringStrategy:
         target_gray: float = 0.18,
         logger: Optional[Logger] = None
     ) -> float:
-        from . import utils
-        
+
         sample = utils.get_subsampled_view(img_linear)
         max_vals = np.max(sample, axis=2)
         high_percentile = np.percentile(max_vals, 99.0)
@@ -140,7 +142,6 @@ class HybridMeteringStrategy:
         target_gray: float = 0.18,
         logger: Optional[Logger] = None
     ) -> float:
-        from . import utils
         
         sample = utils.get_subsampled_view(img_linear)
         coeffs = utils.get_luminance_coeffs(source_colorspace)
@@ -182,7 +183,6 @@ class MatrixMeteringStrategy:
         target_gray: float = 0.18,
         logger: Optional[Logger] = None
     ) -> float:
-        from . import utils
         
         sample = utils.get_subsampled_view(img_linear)
         h, w, _ = sample.shape
@@ -296,8 +296,7 @@ def apply_auto_exposure(
     Returns:
         np.ndarray: 调整后的图像
     """
-    from . import utils
-    
+
     strategy = get_metering_strategy(metering_mode)
     gain = strategy.calculate_gain(img_linear, source_colorspace, target_gray, logger)
     utils.apply_gain_inplace(img_linear, float(gain))

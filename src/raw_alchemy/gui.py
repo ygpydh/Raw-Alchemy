@@ -5,11 +5,14 @@ import threading
 import queue
 import multiprocessing
 import sys
-import time
 
-# 假设 core 和 orchestrator 在 raw_alchemy 包中
-from raw_alchemy import core, orchestrator
-from raw_alchemy.orchestrator import SUPPORTED_RAW_EXTENSIONS
+try:
+    from . import config, orchestrator
+    from .orchestrator import SUPPORTED_RAW_EXTENSIONS
+except ImportError:
+    import config, orchestrator
+    from orchestrator import SUPPORTED_RAW_EXTENSIONS
+
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -89,8 +92,8 @@ class GuiApplication(tk.Frame):
 
         # Row 0: Log Space
         ttk.Label(settings_frame, text="Log Space:").grid(row=0, column=0, sticky="w", pady=5)
-        self.log_space_var = tk.StringVar(value=list(core.LOG_TO_WORKING_SPACE.keys())[0])
-        ttk.OptionMenu(settings_frame, self.log_space_var, self.log_space_var.get(), *core.LOG_TO_WORKING_SPACE.keys()).grid(row=0, column=1, sticky="w", padx=5)
+        self.log_space_var = tk.StringVar(value=list(config.LOG_TO_WORKING_SPACE.keys())[0])
+        ttk.OptionMenu(settings_frame, self.log_space_var, self.log_space_var.get(), *config.LOG_TO_WORKING_SPACE.keys()).grid(row=0, column=1, sticky="w", padx=5)
 
         # Row 1: LUT
         ttk.Label(settings_frame, text="LUT (.cube):").grid(row=1, column=0, sticky="w", pady=5)
@@ -143,7 +146,7 @@ class GuiApplication(tk.Frame):
         self.auto_opts_frame = ttk.Frame(auto_frame)
         self.auto_opts_frame.pack(padx=10, pady=5, fill="x")
         self.metering_mode_var = tk.StringVar(value='matrix')
-        ttk.OptionMenu(self.auto_opts_frame, self.metering_mode_var, 'matrix', *core.METERING_MODES).grid(row=0, column=1, sticky="w", padx=5)
+        ttk.OptionMenu(self.auto_opts_frame, self.metering_mode_var, 'matrix', *config.METERING_MODES).grid(row=0, column=1, sticky="w", padx=5)
 
         # --- Row 1: Manual ---
         manual_frame = ttk.Frame(exp_frame)

@@ -1,6 +1,10 @@
 from typing import Optional
 import rawpy
 import numpy as np
+try:
+    from . import lensfun_wrapper as lf
+except ImportError:
+    import lensfun_wrapper as lf
 from raw_alchemy import lensfun_wrapper as lf
 from numba import njit, prange
 

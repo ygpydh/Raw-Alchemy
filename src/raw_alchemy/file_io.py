@@ -8,8 +8,10 @@ import tifffile
 from PIL import Image
 import pillow_heif
 from typing import Optional
-from .logger import Logger
-
+try:
+    from .logger import Logger
+except ImportError:
+    from logger import Logger
 
 def save_image(
     img: np.ndarray,
@@ -86,8 +88,8 @@ def _save_jpeg_or_other(img: np.ndarray, output_path: str, file_ext: str, logger
     """保存为 8-bit JPEG 或其他格式"""
     logger.info(f"    Format: {file_ext.upper()} (8-bit High Quality)")
     
-    # 转换为 8-bit
-    output_image_uint8 = (np.clip(img, 0.0, 1.0) * 255).astype(np.uint8)
+    # 转换为 8-bit（img 已经在 save_image 中被 clip 过了）
+    output_image_uint8 = (img * 255).astype(np.uint8)
     
     # JPEG 特殊优化参数
     save_params = {}

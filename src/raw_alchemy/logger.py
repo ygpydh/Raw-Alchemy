@@ -2,7 +2,7 @@
 统一的日志处理模块
 提供一致的日志接口，支持多种输出方式（控制台、队列、文件等）
 """
-from typing import Optional, Callable, Any
+from typing import Optional, Any
 
 
 class Logger:

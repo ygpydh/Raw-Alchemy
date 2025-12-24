@@ -1,5 +1,11 @@
 import click
-from raw_alchemy import core, orchestrator
+try:
+    from . import lensfun_wrapper as lf
+    from . import config, orchestrator
+except ImportError:
+    import lensfun_wrapper as lf
+    import config
+    import orchestrator
 
 @click.command()
 @click.argument("input_path", type=click.Path(exists=True))
@@ -7,7 +13,7 @@ from raw_alchemy import core, orchestrator
 @click.option(
     "--log-space",
     required=True,
-    type=click.Choice(list(core.LOG_TO_WORKING_SPACE.keys()), case_sensitive=False),
+    type=click.Choice(list(config.LOG_TO_WORKING_SPACE.keys()), case_sensitive=False),
     help="The log space to convert to.",
 )
 @click.option(
@@ -36,7 +42,7 @@ from raw_alchemy import core, orchestrator
 @click.option(
     "--metering",
     default="hybrid",
-    type=click.Choice(core.METERING_MODES, case_sensitive=False),
+    type=click.Choice(config.METERING_MODES, case_sensitive=False),
     help="Auto exposure metering mode: hybrid (default), average, center-weighted, highlight-safe.",
 )
 @click.option(

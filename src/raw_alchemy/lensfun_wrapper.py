@@ -5,7 +5,7 @@ Lensfun库的Python包装器
 
 import ctypes
 import numpy as np
-from typing import Optional, Tuple
+from typing import Optional
 import platform
 import os
 import sys
