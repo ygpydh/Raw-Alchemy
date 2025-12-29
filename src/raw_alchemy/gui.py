@@ -157,7 +157,7 @@ class GuiApplication(tk.Frame):
         self.manual_opts_frame.pack(side="left", padx=10, fill="x", expand=True)
         
         self.exposure_stops_var = tk.DoubleVar(value=0.0)
-        self.exposure_scale = ttk.Scale(self.manual_opts_frame, from_=-5.0, to=5.0, variable=self.exposure_stops_var, command=lambda v: self.exposure_stops_var.set(round(float(v), 2)))
+        self.exposure_scale = ttk.Scale(self.manual_opts_frame, from_=-10.0, to=10.0, variable=self.exposure_stops_var, command=lambda v: self.exposure_stops_var.set(round(float(v), 2)))
         self.exposure_scale.pack(side="left", fill="x", expand=True)
         ttk.Entry(self.manual_opts_frame, textvariable=self.exposure_stops_var, width=6).pack(side="left", padx=5)
         
