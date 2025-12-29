@@ -157,7 +157,7 @@ class PreviewWindow:
                     # 提取EXIF
                     self.exif_data = utils.extract_lens_exif(raw, logger=print)
                     
-                    # 解码RAW
+                    # 解码RAW - 使用半尺寸解码加快预览速度（速度提升约4倍）
                     prophoto_linear = raw.postprocess(
                         gamma=(1, 1),
                         no_auto_bright=True,
@@ -167,6 +167,7 @@ class PreviewWindow:
                         bright=1.0,
                         highlight_mode=2,
                         demosaic_algorithm=rawpy.DemosaicAlgorithm.AAHD,
+                        half_size=True,  # 半尺寸解码，分辨率减半但速度提升4倍
                     )
                     
                     # 转为Float32
