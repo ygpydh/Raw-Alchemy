@@ -1,3 +1,4 @@
+import sys
 import tkinter as tk
 from tkinter import ttk
 import numpy as np
@@ -9,7 +10,7 @@ import os
 
 import matplotlib
 matplotlib.use('TkAgg')
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
 from raw_alchemy import utils, config
@@ -37,6 +38,20 @@ class PreviewWindow:
         self.window.title(f"Preview - {os.path.basename(raw_path)}")
         self.window.geometry("1200x800")
         
+        # --- Icon Setting ---
+        try:
+            if sys.platform.startswith('win'):
+                icon_path = utils.resource_path("icon.ico")
+                if os.path.exists(icon_path): self.window.iconbitmap(icon_path)
+            else:
+                icon_path = utils.resource_path("icon.png")
+                if os.path.exists(icon_path):
+                    icon_image = tk.PhotoImage(file=icon_path)
+                    self.window.iconphoto(True, icon_image)
+        except Exception as e:
+            print(f"Icon load warning: {e}")
+
+
         # 缓存的原始图像数据
         self.prophoto_linear = None  # 原始线性数据
         self.prophoto_corrected = None  # 镜头校正后的数据
@@ -75,21 +90,47 @@ class PreviewWindow:
         
         ttk.Button(status_frame, text="🔄 Refresh", command=self.refresh_preview).pack(side="right")
         
+        # 使用 PanedWindow 分割预览区和侧边栏
+        self.paned_window = ttk.PanedWindow(main_container, orient=tk.HORIZONTAL)
+        self.paned_window.pack(fill="both", expand=True)
+        
+        # 左侧预览区域
+        preview_frame = ttk.Frame(self.paned_window)
+        self.paned_window.add(preview_frame, weight=4)
+        
+        # 右侧侧边栏（直方图等）
+        sidebar_frame = ttk.Frame(self.paned_window)
+        self.paned_window.add(sidebar_frame, weight=1)
+        
+        # --- 预览区域内容 ---
         # Matplotlib图形区域
-        self.fig = Figure(figsize=(12, 8), dpi=100)
+        self.fig = Figure(figsize=(8, 6), dpi=100)
         self.ax = self.fig.add_subplot(111)
         self.ax.axis('off')  # 隐藏坐标轴
+        self.fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
         
         # 创建Canvas
-        self.canvas = FigureCanvasTkAgg(self.fig, master=main_container)
+        self.canvas = FigureCanvasTkAgg(self.fig, master=preview_frame)
         self.canvas.draw()
         self.canvas.get_tk_widget().pack(fill="both", expand=True)
         
-        # 添加工具栏（缩放、平移等）
-        toolbar_frame = ttk.Frame(main_container)
-        toolbar_frame.pack(fill="x")
-        toolbar = NavigationToolbar2Tk(self.canvas, toolbar_frame)
-        toolbar.update()
+        # --- 侧边栏内容 ---
+        # RGB直方图区域
+        rgb_hist_container = ttk.LabelFrame(sidebar_frame, text="Histogram")
+        rgb_hist_container.pack(fill="x", padx=5, pady=5)
+        
+        self.rgb_hist_fig = Figure(figsize=(3, 2.5), dpi=100)
+        self.rgb_hist_fig.patch.set_facecolor('#f0f0f0')
+        
+        self.rgb_hist_ax = self.rgb_hist_fig.add_subplot(111)
+        self.rgb_hist_ax.set_facecolor('#2b2b2b')
+        self.rgb_hist_ax.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
+        for spine in self.rgb_hist_ax.spines.values():
+            spine.set_visible(False)
+            
+        self.rgb_hist_canvas = FigureCanvasTkAgg(self.rgb_hist_fig, master=rgb_hist_container)
+        self.rgb_hist_canvas.draw()
+        self.rgb_hist_canvas.get_tk_widget().pack(fill="both", expand=True, padx=2, pady=2)
         
         # 初始化图像对象
         self.image_obj = None
@@ -363,6 +404,9 @@ class PreviewWindow:
             # 刷新canvas
             self.canvas.draw()
             
+            # 更新直方图
+            self.update_histogram(img_array)
+            
             self.status_label.config(text="Preview Updated ✓", foreground="green")
             
         except Exception as e:
@@ -370,6 +414,63 @@ class PreviewWindow:
             traceback.print_exc()
             self.on_process_error(str(e))
     
+    def update_histogram(self, img_array):
+        """更新直方图"""
+        try:
+            # 简单的下采样以提高直方图计算速度
+            if img_array.shape[0] * img_array.shape[1] > 500000:
+                 sample = img_array[::2, ::2, :]
+            else:
+                 sample = img_array
+            
+            bins = 128  # 预览不需要太高精度的直方图
+            x = np.linspace(0, 1, bins)
+            
+            # --- 更新 RGB 直方图 ---
+            self.rgb_hist_ax.clear()
+            self.rgb_hist_ax.set_facecolor('#2b2b2b')
+            self.rgb_hist_ax.set_xlim(0, 1)
+            
+            max_val_rgb = 0
+            colors = ['red', 'green', 'blue']
+            hists = []
+            
+            # 1. 计算三个通道的原始数据
+            for i in range(3):
+                hist, _ = np.histogram(sample[..., i], bins=bins, range=(0, 1))
+                hists.append(hist)
+            
+            # 2. 【核心优化】计算 Y 轴上限时忽略“纯黑”和“纯白”的统计尖峰
+            valid_counts = []
+            for h in hists:
+                # 忽略 hist[0] (纯黑) 和 hist[-1] (纯白)
+                valid_counts.extend(h[1:-1])
+            
+            valid_counts = np.array(valid_counts)
+            if len(valid_counts) > 0 and valid_counts.max() > 0:
+                # 使用中间有效区域的 95% 分位数作为参考上限
+                max_val_rgb = np.percentile(valid_counts, 98) * 1.5
+                
+                # 保险逻辑：防止缩得太小，如果最大峰值太高，至少保证能看到它的 10%
+                absolute_max = max(h.max() for h in hists)
+                max_val_rgb = max(max_val_rgb, absolute_max * 0.1)
+            else:
+                max_val_rgb = max(h.max() for h in hists) if any(h.max() > 0 for h in hists) else 1
+
+            # 3. 绘制填充曲线
+            for i, color in enumerate(colors):
+                hist = hists[i]
+                self.rgb_hist_ax.plot(x, hist, color=color, linewidth=1, alpha=0.9)
+                self.rgb_hist_ax.fill_between(x, 0, hist, color=color, alpha=0.2)
+            
+            # 4. 设置裁剪后的 Y 轴范围
+            self.rgb_hist_ax.set_ylim(0, max_val_rgb)
+            self.rgb_hist_ax.axis('off')
+            self.rgb_hist_fig.tight_layout(pad=0)
+            self.rgb_hist_canvas.draw()
+            
+        except Exception as e:
+            print(f"Histogram error: {e}")
     
     def on_process_error(self, error_msg):
         """处理错误的回调"""
@@ -390,3 +491,4 @@ def open_preview_window(parent, raw_path: str, gui_app):
         PreviewWindow实例
     """
     return PreviewWindow(parent, raw_path, gui_app)
+

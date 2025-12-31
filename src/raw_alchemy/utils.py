@@ -1,8 +1,19 @@
+import os
+import sys
 from typing import Optional
 import rawpy
 import numpy as np
 from raw_alchemy import lensfun_wrapper as lf
 from numba import njit, prange
+
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
 
 # =========================================================
 # Numba 加速核函数 (In-Place / 无内存分配)

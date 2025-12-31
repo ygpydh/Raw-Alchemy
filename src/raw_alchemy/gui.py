@@ -6,18 +6,9 @@ import queue
 import multiprocessing
 import sys
 
-from raw_alchemy import config, orchestrator
+from raw_alchemy import config, orchestrator, utils
 from raw_alchemy.orchestrator import SUPPORTED_RAW_EXTENSIONS
 from raw_alchemy.preview import open_preview_window
-
-
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-    return os.path.join(base_path, relative_path)
 
 class GuiApplication(tk.Frame):
     def __init__(self, master=None):
@@ -29,10 +20,10 @@ class GuiApplication(tk.Frame):
         # --- Icon Setting ---
         try:
             if sys.platform.startswith('win'):
-                icon_path = resource_path("icon.ico")
+                icon_path = utils.resource_path("icon.ico")
                 if os.path.exists(icon_path): self.master.iconbitmap(icon_path)
             else:
-                icon_path = resource_path("icon.png")
+                icon_path = utils.resource_path("icon.png")
                 if os.path.exists(icon_path):
                     icon_image = tk.PhotoImage(file=icon_path)
                     self.master.iconphoto(True, icon_image)
