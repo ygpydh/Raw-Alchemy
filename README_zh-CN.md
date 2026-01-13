@@ -235,3 +235,20 @@ raw-alchemy [OPTIONS] <INPUT_RAW_PATH> <OUTPUT_TIFF_PATH>
 -   `Arri LogC4`
 -   `Log3G10`
 -   `D-Log`
+
+---
+
+## ☕ 请我喝咖啡
+
+如果 **Raw Alchemy** 节省了你的工作时间，欢迎请作者喝杯咖啡提提神。☕
+
+<details>
+<summary><strong>👉 点击展开二维码 (微信/支付宝)</strong></summary>
+
+<br>
+<div align="center">
+  <img src="Samples/sponsor.png" width="300px">
+  <p><sub>感谢支持，随缘打赏</sub></p>
+</div>
+
+</details>
